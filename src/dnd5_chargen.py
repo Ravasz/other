@@ -75,7 +75,8 @@ class Race:
 class Character:
     """
     This class represents a character in Dungeons & Dragons 5E.
-    It includes attributes such as name, race, class, attributes (strength, dexterity, etc.),
+    It includes attributes such as name, race, class, attributes 
+    (strength, dexterity, etc.),
     skills, feats, and spells.
     """
 
@@ -109,10 +110,12 @@ class Character:
         skills_str = ', '.join(str(skill) for skill in self.skills)
         feats_str = ', '.join(str(feat) for feat in self.feats)
         spells_str = ', '.join(str(spell) for spell in self.spells)
-        return (f"Name: {self.name}, Race: {self.race}, Class: {self.char_class}\n"
-                f"Attributes: {self.attributes}\n"
-                f"Skills: {skills_str}\n"
-                f"Feats: {feats_str}\n"
-                f"Spells: {spells_str}")
+        return (
+            f"Name: {self.name}, Race: {self.race}, Class: {self.char_class}\n"
+            f"Attributes: {self.attributes}\n"
+            f"Skills: {skills_str}\n"
+            f"Feats: {feats_str}\n"
+            f"Spells: {spells_str}"
+        )
 
 
