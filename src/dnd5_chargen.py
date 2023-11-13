@@ -20,13 +20,13 @@ class Skill:
     def __init__(self, name, proficiency_level=0):
         self.name = name
         self.proficiency_level = proficiency_level
-
+    
     def __str__(self):
         return f"{self.name} (Proficiency Level: {self.proficiency_level})"
-
+    
     def increase_proficiency(self):
         self.proficiency_level += 1
-
+    
     def set_proficiency(self, level):
         self.proficiency_level = level
 
@@ -36,14 +36,14 @@ class Spell:
     It stores details about the spell such as its name, level, school, 
     casting time, and a brief description.
     """
-
+    
     def __init__(self, name, level, school, casting_time, description):
         self.name = name
         self.level = level
         self.school = school
         self.casting_time = casting_time
         self.description = description
-
+    
     def __str__(self):
         return (
             f"{self.name} (Level {self.level} {self.school}) - "
@@ -55,21 +55,22 @@ class Race:
     """
     This class represents a race in Dungeons & Dragons 5E.
     It includes attributes such as the race name, a brief description,
-    and specific racial traits or bonuses.
+    racial traits, and ability score modifiers.
     """
-
-    def __init__(self, name, description, racial_traits):
+    
+    def __init__(self, name, description, racial_traits, ability_score_modifiers):
         self.name = name
         self.description = description
         self.racial_traits = racial_traits
-
+        self.ability_score_modifiers = ability_score_modifiers
+    
     def __str__(self):
         traits_str = ', '.join(self.racial_traits)
-        return (
-            f"Race: {self.name}\n"
-            f"Description: {self.description}\n"
-            f"Racial Traits: {traits_str}"
-        )
+        modifiers_str = ', '.join(self.ability_score_modifiers)
+        return (f"Race: {self.name}\n"
+                f"Description: {self.description}\n"
+                f"Racial Traits: {traits_str}\n"
+                f"Ability Score Modifiers: {modifiers_str}")
 
 
 class Character:
@@ -79,7 +80,7 @@ class Character:
     (strength, dexterity, etc.),
     skills, feats, and spells.
     """
-
+    
     def __init__(self, name, race, char_class, strength, dexterity, 
                  constitution, intelligence, wisdom, charisma):
         self.name = name
@@ -96,16 +97,16 @@ class Character:
         self.skills = []
         self.feats = []
         self.spells = []
-
+    
     def add_skill(self, skill):
         self.skills.append(skill)
-
+    
     def add_feat(self, feat):
         self.feats.append(feat)
-
+    
     def add_spell(self, spell):
         self.spells.append(spell)
-
+    
     def __str__(self):
         skills_str = ', '.join(str(skill) for skill in self.skills)
         feats_str = ', '.join(str(feat) for feat in self.feats)
@@ -118,4 +119,120 @@ class Character:
             f"Spells: {spells_str}"
         )
 
+def generate_ability_scores(total_points=27, min_score=8, max_score=15):
+    """
+    Generate ability scores using a point buy system.
+    :param total_points: Total points available for distribution.
+    :param min_score: Minimum value for any ability score.
+    :param max_score: Maximum value for any ability score before racial bonuses.
+    :return: Dictionary with allocated ability scores.
+    """
+    ability_scores = {
+        'Strength': min_score,
+        'Dexterity': min_score,
+        'Constitution': min_score,
+        'Intelligence': min_score,
+        'Wisdom': min_score,
+        'Charisma': min_score
+    }
+    
+    remaining_points = total_points
+    
+    for ability in ability_scores:
+        while True:
+            print(f"\nCurrent Ability Scores: {ability_scores}")
+            print(f"Remaining Points: {remaining_points}")
+            try:
+                score = int(input(f"Enter score for {ability} (min {min_score}, max {max_score}): "))
+                cost = calculate_point_cost(score, min_score)
+                
+                if min_score <= score <= max_score and cost <= remaining_points:
+                    ability_scores[ability] = score
+                    remaining_points -= cost
+                    break
+                else:
+                    print(f"Invalid score or not enough points. Please try again.")
+            except ValueError:
+                print("Please enter a valid integer.")
+    
+    return ability_scores
 
+def calculate_point_cost(score, base_score=8):
+    """
+    Calculate the point cost for a given score in the point buy system.
+    :param score: The ability score to calculate the cost for.
+    :param base_score: The base score from which the point cost is calculated.
+    :return: The point cost for the given score.
+    """
+    point_costs = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
+    return point_costs.get(score, 0) - point_costs.get(base_score, 0)
+
+def create_character():
+    """
+    Create a new character through a series of user prompts.
+    
+    :return: Character object with user-defined attributes.
+    """
+    # Prompt for basic character information
+    name = input("Enter your character's name: ")
+    race = input("Enter your character's race: ")
+    char_class = input("Enter your character's class: ")
+    
+    # Generate ability scores using the point buy system
+    print("\nLet's determine your character's ability scores using a point buy system.")
+    ability_scores = generate_ability_scores()
+    
+    # Create the character object with the provided information
+    character = Character(name, race, char_class, 
+                          strength=ability_scores['Strength'],
+                          dexterity=ability_scores['Dexterity'],
+                          constitution=ability_scores['Constitution'],
+                          intelligence=ability_scores['Intelligence'],
+                          wisdom=ability_scores['Wisdom'],
+                          charisma=ability_scores['Charisma'])
+    
+    return character
+
+def read_races_from_file(file_path):
+    """
+    Read race details from a text file and create a list of Race objects.
+    
+    :param file_path: Path to the file containing race details.
+    :return: A list of Race objects based on the details in the file.
+    """
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    
+    races = []
+    race_info = {
+        "Race": "", 
+        "Description": "", 
+        "Racial Traits": "", 
+        "Ability Score Modifier": ""
+    }
+    
+    for line in lines:
+        if line.strip() == '':
+            # Create a Race object when a blank line is encountered
+            if race_info:
+                race = Race(
+                    race_info['Race'], 
+                    race_info['Description'], 
+                    race_info['Racial Traits'], 
+                    race_info['Ability Score Modifier']
+                )
+                races.append(race)
+                race_info = {}
+        else:
+            key, value = line.split(':')
+            key = key.strip()
+            if key in ["Racial Traits", "Ability Score Modifier"]:
+                value = [sub[1:] if sub[0] == " " else sub 
+                        for sub in value.strip().split(",")]
+            else: 
+                value = value.strip()
+            race_info[key] = value
+    
+    return races
+
+core_races = read_races_from_file("other/src/race_5e.txt")
