@@ -167,7 +167,7 @@ def calculate_point_cost(score, base_score=8):
     point_costs = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
     return point_costs.get(score, 0) - point_costs.get(base_score, 0)
 
-def create_character():
+def create_character(race_list):
     """
     Create a new character through a series of user prompts.
     
@@ -175,7 +175,10 @@ def create_character():
     """
     # Prompt for basic character information
     name = input("Enter your character's name: ")
-    race = input("Enter your character's race: ")
+    print("Choose your race from the available options")
+    for i in range(len(race_list)): print(str(i + 1) + ": " + race_list[i].name)
+    race_in = input("")
+    race = race_list[int(race_in) - 1]
     char_class = input("Enter your character's class: ")
     
     # Generate ability scores using the point buy system
