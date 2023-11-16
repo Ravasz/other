@@ -72,6 +72,19 @@ class Race:
                 f"Racial Traits: {traits_str}\n"
                 f"Ability Score Modifiers: {modifiers_str}")
 
+class DnDClass:
+    """
+    This class represents a character class in Dungeons & Dragons 5E.
+    It includes the class name and a brief description.
+    """
+    
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+    
+    def __str__(self):
+        return f"Class: {self.name}\nDescription: {self.description}"
+
 
 class Character:
     """
@@ -243,6 +256,33 @@ def read_races_from_file(file_path):
     
     return races
 
+def read_classes_from_file(file_path):
+    """
+    Read class details from a text file and create a list of DnDClass objects.
+    
+    :param file_path: Path to the file containing class details.
+    :return: A list of DnDClass objects based on the details in the file.
+    """
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    
+    classes = []
+    class_name = ''
+    description = ''
+    
+    for line in lines:
+        if line.startswith('Class:'):
+            class_name = line.split(':', 1)[1].strip()
+        elif line.startswith('Description:'):
+            description = line.split(':', 1)[1].strip()
+            dnd_class = DnDClass(class_name, description)
+            classes.append(dnd_class)
+    
+    return classes
+
+
+
 core_races = read_races_from_file("other/src/race_5e.txt")
+core_classes = read_classes_from_file("other/src/core_classes.txt")
 
 test_character = create_character(core_races)
