@@ -155,6 +155,8 @@ def generate_ability_scores(total_points=27, min_score=8, max_score=15):
             except ValueError:
                 print("Please enter a valid integer.")
     
+    print(f"Remaining Points: {remaining_points}")
+    print(ability_scores)
     return ability_scores
 
 def calculate_point_cost(score, base_score=8):
@@ -182,8 +184,11 @@ def create_character(race_list):
     char_class = input("Enter your character's class: ")
     
     # Generate ability scores using the point buy system
-    print("\nLet's determine your character's ability scores using a point buy system.")
-    ability_scores = generate_ability_scores()
+    while True:
+        print("\nLet's determine your character's ability scores using a point buy system.")
+        ability_scores = generate_ability_scores()
+        break_val = input("ready to move on (y/n)?")
+        if break_val == "y": break
     
     # Create the character object with the provided information
     character = Character(name, race, char_class, 
@@ -239,3 +244,5 @@ def read_races_from_file(file_path):
     return races
 
 core_races = read_races_from_file("other/src/race_5e.txt")
+
+test_character = create_character(core_races)
