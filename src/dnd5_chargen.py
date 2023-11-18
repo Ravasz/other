@@ -1,10 +1,5 @@
 # character builder for DnD5
 
-
-# test commit
-
-# create classes for characters, feats, skills, races, and spells
-
 class Feat:
     """Class to store feats"""
     def __init__(self, name, description):
@@ -13,7 +8,6 @@ class Feat:
 
     def __str__(self):
         return f"{self.name}: {self.description}"
-
 
 class Skill:
     """Class to store skills"""
@@ -85,7 +79,6 @@ class DnDClass:
     def __str__(self):
         return f"Class: {self.name}\nDescription: {self.description}"
 
-
 class Character:
     """
     This class represents a character in Dungeons & Dragons 5E.
@@ -124,9 +117,15 @@ class Character:
         skills_str = ', '.join(str(skill) for skill in self.skills)
         feats_str = ', '.join(str(feat) for feat in self.feats)
         spells_str = ', '.join(str(spell) for spell in self.spells)
+        
+        attr_str = ""
+        for key, value in self.attributes.items(): 
+            if len(attr_str) > 0: attr_str += ", "
+            attr_str += key + ": " + str(value)
+        
         return (
-            f"Name: {self.name}, Race: {self.race}, Class: {self.char_class}\n"
-            f"Attributes: {self.attributes}\n"
+            f"Name: {self.name}, Race: {self.race.name}, Class: {self.char_class.name}\n"
+            f"Attributes: {attr_str}\n"
             f"Skills: {skills_str}\n"
             f"Feats: {feats_str}\n"
             f"Spells: {spells_str}"
@@ -182,7 +181,7 @@ def calculate_point_cost(score, base_score=8):
     point_costs = {8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9}
     return point_costs.get(score, 0) - point_costs.get(base_score, 0)
 
-def create_character(race_list):
+def create_character(race_list, class_list):
     """
     Create a new character through a series of user prompts.
     
@@ -194,14 +193,20 @@ def create_character(race_list):
     for i in range(len(race_list)): print(str(i + 1) + ": " + race_list[i].name)
     race_in = input("")
     race = race_list[int(race_in) - 1]
-    char_class = input("Enter your character's class: ")
     
+    print("Choose your class from the available options")
+    for i in range(len(class_list)): print(str(i + 1) + ": " + class_list[i].name)
+    class_in = input("")
+    char_class = class_list[int(class_in) - 1]
+        
     # Generate ability scores using the point buy system
     while True:
         print("\nLet's determine your character's ability scores using a point buy system.")
         ability_scores = generate_ability_scores()
         break_val = input("ready to move on (y/n)?")
         if break_val == "y": break
+    
+    
     
     # Create the character object with the provided information
     character = Character(name, race, char_class, 
@@ -281,8 +286,16 @@ def read_classes_from_file(file_path):
     return classes
 
 
-
 core_races = read_races_from_file("other/src/race_5e.txt")
 core_classes = read_classes_from_file("other/src/core_classes.txt")
 
-test_character = create_character(core_races)
+test_character = create_character(core_races, core_classes)
+
+print(test_character)
+
+test_dict = {
+    "foo": 2,
+    "bar": 4,
+    "baz": 3
+}
+
