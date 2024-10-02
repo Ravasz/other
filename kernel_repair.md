@@ -20,8 +20,8 @@ sudo chroot /mnt/myos
 sudo apt update
 
 apt search linux-image
-sudo apt install linux-image-5.15.0-XX-generic
-sudo apt install linux-headers-
+sudo apt install linux-image-5.15.0-100-generic
+sudo apt install linux-headers-5.15.0-100-generic
 
 sudo update-grub
 
