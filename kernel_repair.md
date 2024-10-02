@@ -13,5 +13,26 @@ sudo mount --bind /dev/pts /mnt/myos/dev/pts
 sudo chroot /mnt/myos
 
 nano /etc/hosts
-hostname 
+hostname #<add hostname here>
+exit
+
+sudo chroot /mnt/myos
+sudo apt update
+
+apt search linux-image
+sudo apt install linux-image-5.15.0-XX-generic
+sudo apt install linux-headers-
+
+sudo update-grub
+
+exit
+
+sudo umount /mnt/myos/dev/pts
+sudo umount /mnt/myos/dev
+sudo umount /mnt/myos/proc
+sudo umount /mnt/myos/sys
+sudo umount /mnt/myos
+
+sudo reboot
+
 ```
