@@ -1,0 +1,4 @@
+taxid:2069319|Amalgaviridae|Durnavirales|Duplopiviricetes|Pisuviricota|Orthornavirae|Riboviria
+taxid:2069325|Amalgaviridae|Durnavirales|Duplopiviricetes|Pisuviricota|Orthornavirae|Riboviria
+taxid:2069326|Amalgaviridae|Durnavirales|Duplopiviricetes|Pisuviricota|Orthornavirae|Riboviria
+taxid:2069326|Amalgaviridae|Durnavirales|Duplopiviricetes|Pisuviricota|Orthornavirae|Riboviria

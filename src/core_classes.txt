@@ -1,0 +1,35 @@
+Class: Barbarian
+Description: A fierce warrior of primitive background who can enter a battle rage.
+
+Class: Bard
+Description: An inspiring magician whose power echoes the music of creation.
+
+Class: Cleric
+Description: A priestly champion who wields divine magic in service of a higher power.
+
+Class: Druid
+Description: A priest of the Old Faith, wielding the powers of nature and adopting animal forms.
+
+Class: Fighter
+Description: A master of martial combat, skilled with a variety of weapons and armor.
+
+Class: Monk
+Description: A master of martial arts, harnessing the power of the body in pursuit of physical and spiritual perfection.
+
+Class: Paladin
+Description: A holy warrior bound to a sacred oath.
+
+Class: Ranger
+Description: A warrior who uses martial prowess and nature magic to combat threats on the edges of civilization.
+
+Class: Rogue
+Description: A scoundrel who uses stealth and trickery to overcome obstacles and enemies.
+
+Class: Sorcerer
+Description: A spellcaster who draws on inherent magic from a gift or bloodline.
+
+Class: Warlock
+Description: A wielder of magic that is derived from a bargain with an extraplanar entity.
+
+Class: Wizard
+Description: A scholarly magic-user capable of manipulating the structures of reality.
