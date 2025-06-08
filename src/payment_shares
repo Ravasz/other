@@ -1,129 +1,169 @@
-def settle_expenses():
-    """
-    Calculates who owes whom after a group trip.
-    """
-    payments = []
-    team_members = set() # To keep track of all unique team members
+import pandas as pd
+import numpy as np
 
-    print("Welcome to the Expense Splitter!")
-    print("Enter each payment. Type 'done' when you're finished.")
-
-    while True:
-        payer = input("\nWho made the payment? (e.g., 'Alice', 'Bob') or type 'done': ").strip()
-        if payer.lower() == 'done':
-            break
-        team_members.add(payer)
-
-        try:
-            amount = float(input(f"How much did {payer} pay (in Ft)? ").strip())
-        except ValueError:
-            print("Invalid amount. Please enter a number.")
-            continue
-
-        description = input("What was this payment for? (e.g., 'Lunch', 'Train tickets'): ").strip()
-
-        # Ask for participants
-        print(f"Who benefited from this {description} payment? (Enter names separated by commas, e.g., 'Alice, Bob, Carol'. If everyone, just type 'all'): ")
-        participants_input = input().strip()
-
-        current_participants = set()
-        if participants_input.lower() == 'all':
-            # For now, we'll assume 'all' means all members entered so far.
-            # We'll refine this later to ensure all members are tracked properly before final calculation.
-            print("Please ensure you've entered all team members in previous payments or we'll ask for them later.")
-            current_participants = team_members.copy() # Temporary, will improve this
-        else:
-            names = [name.strip() for name in participants_input.split(',')]
-            for name in names:
-                if name: # Avoid adding empty strings
-                    current_participants.add(name)
-                    team_members.add(name) # Add participants to the overall team members set
-
-        if not current_participants:
-            print("No participants entered for this payment. Skipping this entry.")
-            continue
-
-        payments.append({
-            'payer': payer,
-            'amount': amount,
-            'description': description,
-            'participants': list(current_participants) # Store as list for consistency
-        })
-
-    if not payments:
-        print("No payments entered. Exiting.")
+def settle_expenses_from_csv(csv_filepath):
+    try:
+        df = pd.read_csv(csv_filepath)
+    except FileNotFoundError:
+        print(f"Error: CSV file not found at '{csv_filepath}'")
+        return
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
         return
 
-    print("\n--- Summary of Payments ---")
-    for p in payments:
-        print(f"{p['payer']} paid {p['amount']:.2f} € for '{p['description']}' benefiting: {', '.join(p['participants'])}")
+    print(f"\n--- Processing CSV: {csv_filepath} ---")
+    print("Detected columns:", df.columns.tolist())
 
-    # Now, let's make sure we have a definitive list of all team members
-    # In a real scenario, you might ask for all team members at the start,
-    # but this dynamic approach works for now.
-    all_team_members = sorted(list(team_members))
-    print(f"\nTeam Members involved: {', '.join(all_team_members)}")
+    # --- Crucial Fix: Convert 'Payment Amount' to numeric ---
+    # `errors='coerce'` will turn any non-numeric values into NaN (Not a Number)
+    # This is safer than just `astype(float)` which would raise an error if non-numeric data is found.
+    df['Payment Amount'] = pd.to_numeric(df['Payment Amount'], errors='coerce')
+
+    # Drop rows where 'Payment Amount' could not be converted (i.e., became NaN)
+    if df['Payment Amount'].isnull().any():
+        print("Warning: Some 'Payment Amount' entries were not numbers and have been skipped.")
+        df.dropna(subset=['Payment Amount'], inplace=True)
+        if df.empty:
+            print("No valid payments left after cleaning. Exiting.")
+            return
+
+    # Identify team member columns
+    fixed_cols = ['Payment Name', 'Payer', 'Payment Amount']
+    known_last_cols = ['Notes', 'Check']
+
+    team_member_cols = [
+        col for col in df.columns if col not in fixed_cols and col not in known_last_cols
+    ]
+
+    if not team_member_cols:
+        print("Error: Could not identify team member columns in the CSV.")
+        print("Please ensure the CSV has columns for each team member's fraction after 'Payment Amount'.")
+        return
+
+    print(f"Identified team member columns: {team_member_cols}")
+
+    # --- Crucial Fix: Convert team member fraction columns to numeric ---
+    for col in team_member_cols:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0) # Convert and fill NaNs with 0
+            # Fill NaNs with 0 because a missing fraction likely means 0 contribution.
+        else:
+            print(f"Warning: Team member column '{col}' not found in DataFrame.")
+
+
+    # Collect all unique team members
+    all_team_members = set(df['Payer'].unique())
+    for col in team_member_cols:
+        if col in df.columns: # Ensure the column exists before adding
+            all_team_members.add(col) # Add column name as a potential team member
+
+    all_team_members = sorted(list(all_team_members))
+    print(f"\nAll identified team members: {', '.join(all_team_members)}")
 
     # Initialize balances
     balances = {member: 0.0 for member in all_team_members}
 
-    # Calculate net balances
-    for payment in payments:
-        payer = payment['payer']
-        amount = payment['amount']
-        participants = payment['participants']
-        share_per_person = amount / len(participants)
+    # Process each payment
+    for index, row in df.iterrows():
+        payment_name = row['Payment Name']
+        payer = row['Payer']
+        amount = row['Payment Amount'] # This is now guaranteed to be numeric or NaN
 
-        for member in all_team_members:
-            if member == payer:
-                balances[member] += amount # Payer gets credit for the full amount they paid
-            if member in participants:
-                balances[member] -= share_per_person # Each participant owes their share
+        # Skip if amount is NaN (coerced non-numeric or missing)
+        if pd.isna(amount):
+            print(f"Skipping row {index + 2} ('{payment_name}') due to invalid 'Payment Amount'.")
+            continue
+
+        current_expense_shares = {}
+        total_fraction_sum = 0.0
+
+        for member_col in team_member_cols:
+            if member_col in row and pd.notna(row[member_col]):
+                fraction = row[member_col] # This is now guaranteed to be numeric (float or int)
+                # It might be 0 if it was NaN and filled with 0
+                if fraction < 0: # Still good to check for negative logic
+                    print(f"Warning: Negative fraction ({fraction}) found for {member_col} in '{payment_name}'. Treating as 0.")
+                    fraction = 0.0
+                current_expense_shares[member_col] = fraction
+                total_fraction_sum += fraction
+
+        if not np.isclose(total_fraction_sum, 1.0, atol=1e-6) and total_fraction_sum > 0:
+            print(f"Warning: Fractions for '{payment_name}' (row {index + 2}) sum to {total_fraction_sum:.2f} Ft, not 1.0. Adjusting proportionally.")
+        elif total_fraction_sum == 0:
+             print(f"Warning: No participants (or all fractions are 0) for '{payment_name}' (row {index + 2}). Skipping expense calculation for this entry.")
+             continue
+
+        if payer in balances:
+            balances[payer] += amount
+        else:
+            print(f"Warning: Payer '{payer}' for '{payment_name}' not in initial team member list. Adding them.")
+            balances[payer] = amount # Initialize and add credit
+            all_team_members.append(payer) # Dynamically add to the list of members (though it's better to manage all_team_members consistently)
+
+
+        for participant, fraction in current_expense_shares.items():
+            if participant in balances:
+                if total_fraction_sum > 0:
+                    balances[participant] -= (fraction / total_fraction_sum) * amount
+            # No need for the else case here as participants should be in `all_team_members`
+            # or `balances` if the column names were added properly.
 
     print("\n--- Individual Balances (Positive means owed, Negative means owes) ---")
-    for member, balance in balances.items():
+    final_balances = {m: (b if abs(b) > 0.01 else 0.0) for m, b in balances.items()}
+
+    for member, balance in final_balances.items():
         print(f"{member}: {balance:.2f} Ft")
 
-    # Now, the tricky part: figuring out who pays whom.
-    # We'll use a simple algorithm: sort by balance and match creditors with debtors.
+    # Settlement logic remains the same
+    debtors = []
+    creditors = []
 
-    debtors = [] # People who owe money (negative balance)
-    creditors = [] # People who are owed money (positive balance)
-
-    for member, balance in balances.items():
+    for member, balance in final_balances.items():
         if balance < 0:
             debtors.append({'name': member, 'amount': abs(balance)})
         elif balance > 0:
             creditors.append({'name': member, 'amount': balance})
 
-    # Sort debtors by amount (largest debt first) and creditors by amount (largest credit first)
     debtors.sort(key=lambda x: x['amount'], reverse=True)
     creditors.sort(key=lambda x: x['amount'], reverse=True)
 
-    print("\n--- How to Settle Up ---")
     transactions = []
+    print("\n--- How to Settle Up ---")
+
+    if not debtors and not creditors:
+        print("Everyone is settled up!")
+        return []
 
     while debtors and creditors:
         debtor = debtors[0]
         creditor = creditors[0]
-
         transfer_amount = min(debtor['amount'], creditor['amount'])
-
         transactions.append(f"{debtor['name']} pays {creditor['name']} {transfer_amount:.2f} Ft")
-
         debtor['amount'] -= transfer_amount
         creditor['amount'] -= transfer_amount
-
-        if debtor['amount'] <= 0.01: # Use a small epsilon for float comparison
-            debtors.pop(0)
-        if creditor['amount'] <= 0.01:
-            creditors.pop(0)
+        if debtor['amount'] <= 0.01: debtors.pop(0)
+        if creditor['amount'] <= 0.01: creditors.pop(0)
 
     if transactions:
-        for t in transactions:
-            print(t)
+        for t in transactions: print(t)
     else:
-        print("Everyone is settled up!")
+        print("No transactions needed - everyone is settled up (or there were no payments).")
 
-# Call the function to run the script
-settle_expenses()
+    return transactions
+
+# --- Example Usage ---
+# Create a dummy CSV file for testing
+csv_content = """Payment Name,Payer,Payment Amount,Alice,Bob,Charlie,David,Eve,Frank,Grace,Notes,Check
+Lunch,Alice,12000,0.25,0.25,0.25,0.25,0,0,0,Shared meal for 4,1
+Train tickets,Bob,8000,0.5,0.5,0,0,0,0,0,Tickets for Alice and Bob,1
+Coffee,Charlie,1500,0,0,1,0,0,0,Charlie's coffee,1
+Dinner,David,15000,0.2,0.2,0.2,0.2,0.2,0,0,Dinner for 5,1
+Beer,Eve,800,0,0,0,0,1,0,0,Eve's beer,1
+Ice Cream,Frank,1000,0.5,0,0,0,0.5,0,0,Alice and Frank shared,1
+Mixed Type Amount,Grace,NotANumber,0.1,0.2,0.3,0.4,0,0,0,This amount is problematic,1
+"""
+csv_filename = 'expenses.csv'
+with open(csv_filename, 'w') as f: f.write(csv_content)
+
+# Run the script with the dummy CSV
+settle_expenses_from_csv(csv_filename)

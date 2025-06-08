@@ -1,0 +1,8 @@
+Payment Name,Payer,Payment Amount,Alice,Bob,Charlie,David,Eve,Frank,Grace,Notes,Check
+Lunch,Alice,12000,0.25,0.25,0.25,0.25,0,0,0,Shared meal for 4,1
+Train tickets,Bob,8000,0.5,0.5,0,0,0,0,0,Tickets for Alice and Bob,1
+Coffee,Charlie,1500,0,0,1,0,0,0,Charlie's coffee,1
+Dinner,David,15000,0.2,0.2,0.2,0.2,0.2,0,0,Dinner for 5,1
+Beer,Eve,800,0,0,0,0,1,0,0,Eve's beer,1
+Ice Cream,Frank,1000,0.5,0,0,0,0.5,0,0,Alice and Frank shared,1
+Mixed Type Amount,Grace,NotANumber,0.1,0.2,0.3,0.4,0,0,0,This amount is problematic,1
