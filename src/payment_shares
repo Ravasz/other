@@ -1,0 +1,129 @@
+def settle_expenses():
+    """
+    Calculates who owes whom after a group trip.
+    """
+    payments = []
+    team_members = set() # To keep track of all unique team members
+
+    print("Welcome to the Expense Splitter!")
+    print("Enter each payment. Type 'done' when you're finished.")
+
+    while True:
+        payer = input("\nWho made the payment? (e.g., 'Alice', 'Bob') or type 'done': ").strip()
+        if payer.lower() == 'done':
+            break
+        team_members.add(payer)
+
+        try:
+            amount = float(input(f"How much did {payer} pay (in Ft)? ").strip())
+        except ValueError:
+            print("Invalid amount. Please enter a number.")
+            continue
+
+        description = input("What was this payment for? (e.g., 'Lunch', 'Train tickets'): ").strip()
+
+        # Ask for participants
+        print(f"Who benefited from this {description} payment? (Enter names separated by commas, e.g., 'Alice, Bob, Carol'. If everyone, just type 'all'): ")
+        participants_input = input().strip()
+
+        current_participants = set()
+        if participants_input.lower() == 'all':
+            # For now, we'll assume 'all' means all members entered so far.
+            # We'll refine this later to ensure all members are tracked properly before final calculation.
+            print("Please ensure you've entered all team members in previous payments or we'll ask for them later.")
+            current_participants = team_members.copy() # Temporary, will improve this
+        else:
+            names = [name.strip() for name in participants_input.split(',')]
+            for name in names:
+                if name: # Avoid adding empty strings
+                    current_participants.add(name)
+                    team_members.add(name) # Add participants to the overall team members set
+
+        if not current_participants:
+            print("No participants entered for this payment. Skipping this entry.")
+            continue
+
+        payments.append({
+            'payer': payer,
+            'amount': amount,
+            'description': description,
+            'participants': list(current_participants) # Store as list for consistency
+        })
+
+    if not payments:
+        print("No payments entered. Exiting.")
+        return
+
+    print("\n--- Summary of Payments ---")
+    for p in payments:
+        print(f"{p['payer']} paid {p['amount']:.2f} € for '{p['description']}' benefiting: {', '.join(p['participants'])}")
+
+    # Now, let's make sure we have a definitive list of all team members
+    # In a real scenario, you might ask for all team members at the start,
+    # but this dynamic approach works for now.
+    all_team_members = sorted(list(team_members))
+    print(f"\nTeam Members involved: {', '.join(all_team_members)}")
+
+    # Initialize balances
+    balances = {member: 0.0 for member in all_team_members}
+
+    # Calculate net balances
+    for payment in payments:
+        payer = payment['payer']
+        amount = payment['amount']
+        participants = payment['participants']
+        share_per_person = amount / len(participants)
+
+        for member in all_team_members:
+            if member == payer:
+                balances[member] += amount # Payer gets credit for the full amount they paid
+            if member in participants:
+                balances[member] -= share_per_person # Each participant owes their share
+
+    print("\n--- Individual Balances (Positive means owed, Negative means owes) ---")
+    for member, balance in balances.items():
+        print(f"{member}: {balance:.2f} Ft")
+
+    # Now, the tricky part: figuring out who pays whom.
+    # We'll use a simple algorithm: sort by balance and match creditors with debtors.
+
+    debtors = [] # People who owe money (negative balance)
+    creditors = [] # People who are owed money (positive balance)
+
+    for member, balance in balances.items():
+        if balance < 0:
+            debtors.append({'name': member, 'amount': abs(balance)})
+        elif balance > 0:
+            creditors.append({'name': member, 'amount': balance})
+
+    # Sort debtors by amount (largest debt first) and creditors by amount (largest credit first)
+    debtors.sort(key=lambda x: x['amount'], reverse=True)
+    creditors.sort(key=lambda x: x['amount'], reverse=True)
+
+    print("\n--- How to Settle Up ---")
+    transactions = []
+
+    while debtors and creditors:
+        debtor = debtors[0]
+        creditor = creditors[0]
+
+        transfer_amount = min(debtor['amount'], creditor['amount'])
+
+        transactions.append(f"{debtor['name']} pays {creditor['name']} {transfer_amount:.2f} Ft")
+
+        debtor['amount'] -= transfer_amount
+        creditor['amount'] -= transfer_amount
+
+        if debtor['amount'] <= 0.01: # Use a small epsilon for float comparison
+            debtors.pop(0)
+        if creditor['amount'] <= 0.01:
+            creditors.pop(0)
+
+    if transactions:
+        for t in transactions:
+            print(t)
+    else:
+        print("Everyone is settled up!")
+
+# Call the function to run the script
+settle_expenses()
