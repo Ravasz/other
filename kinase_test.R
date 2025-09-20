@@ -163,28 +163,28 @@ print(fisher.test(mouse_matrix))
 
 # The above is a simulated experiment. I used the following R code to generate these results:
 
-set.seed(1000)
+set.seed(990)
 generate_values <- function() {
     trt <- rnorm(5, mean = 30000, sd = 500) |> round()
     ctrl <- rnorm(5, mean = 30400, sd = 500) |> round()
     return(list("trt" = trt, "ctrl" = ctrl))
 }
 
-cur_vals <- generate_values()
-print(paste0(
-    paste(cur_vals[["trt"]], collapse = " "), 
-    " ", 
-    paste(cur_vals[["ctrl"]], collapse = " "),
-    " ",
-    t.test(cur_vals[["trt"]], cur_vals[["ctrl"]], paired = TRUE)$p.value
-))
+# cur_vals <- generate_values()
+# print(paste0(
+#     paste(cur_vals[["trt"]], collapse = " "), 
+#     " ", 
+#     paste(cur_vals[["ctrl"]], collapse = " "),
+#     " ",
+#     t.test(cur_vals[["trt"]], cur_vals[["ctrl"]], paired = TRUE)$p.value
+# ))
 
 
-print(paste0(
-    paste(cur_vals[["trt"]], collapse = " "), 
-    " ", 
-    paste(cur_vals[["ctrl"]], collapse = " ")
-))
+# print(paste0(
+#     paste(cur_vals[["trt"]], collapse = " "), 
+#     " ", 
+#     paste(cur_vals[["ctrl"]], collapse = " ")
+# ))
 
 
 test_mat <- matrix(unlist(generate_values()), nrow = 1, byrow = TRUE)
@@ -196,6 +196,7 @@ for (i in seq(1:11)) {
     )
 }
 
+# set row and colnames
 rownames(test_mat) <- c(
     "ORC1", 
     "ORC2", 
@@ -211,12 +212,80 @@ rownames(test_mat) <- c(
     "MCM7" 
 )
 
-scaled_mat <- t(scale(t(test_mat))) |> 
+colnames(test_mat) <- c(paste0("trt", 1:5), paste0("ctrl", 1:5))
+
+# check which are down in the treatment
+trt_means <- apply(test_mat[,1:5], 1, mean) |>
+    as.data.frame() |> 
+    magrittr::set_colnames("trt_means") |> 
+    rownames_to_column("ID")
+
+ctrl_means <- apply(test_mat[,6:10], 1, mean) |> 
+    as.data.frame() |> 
+    magrittr::set_colnames("ctrl_means") |> 
+    rownames_to_column("ID")
+
+means_df <- trt_means |> left_join(ctrl_means, by = "ID") |>
+    mutate("diff" = trt_means - ctrl_means)
+
+pos_means_to_remove <- means_df |> filter(diff > 0) |> pull(ID)
+
+# scale df
+scaled_df <- t(scale(t(test_mat))) |> 
+    as.data.frame() 
+
+# filter for low sd
+deviations <- apply(as.matrix(scaled_df), 2, sd) |> 
     as.data.frame() |>
-    as.matrix()
+    set_names("SD") |>
+    rownames_to_column("ID") |>
+    filter(SD < 1)
 
-apply(scaled_mat, 2, sd)
+filt_df <- scaled_df |> dplyr::select(all_of(deviations[["ID"]])) |>
+    rownames_to_column("ID")
+
+trt_cols <- intersect(paste0("trt", 1:5), colnames(filt_df))
+ctrl_cols <- intersect(paste0("ctrl", 1:5), colnames(filt_df))
+
+proc_df <- filt_df |>
+    rowwise() |> 
+    mutate(
+        trt_cols = list(c_across(starts_with("trt"))),
+        ctrl_cols = list(c_across(starts_with("ctrl"))),
+        ttest_result = list(t.test(trt_cols, ctrl_cols)),
+        p_value = ttest_result$p.value
+    ) |>
+    ungroup() |>
+    dplyr::select(-c("trt_cols", "ctrl_cols", "ttest_result")) 
+    
+res_text <- proc_df |>
+    filter(p_value < 0.05) |>
+    filter(!ID %in% pos_means_to_remove) |>
+    pull(p_value, ID) |>
+    round(3)
 
 
+# reformat output
+out_str <- ""
+for (i in seq_along(res_text)) {
+    if (i == 1) {out_str <- paste0(
+        out_str, 
+        names(res_text)[i],
+        "=", 
+        unname(res_text[i])
+    )}
+    else {out_str <- paste0(
+        out_str, 
+        ", ", 
+        names(res_text)[i], 
+        "=", 
+        unname(res_text[i])
+    )}
+}
 
+out_filt_str = ""
+for (i in seq_along(pos_means_to_remove)) {
+    out_filt_str <- paste0(out_filt_str, pos_means_to_remove[i], "X, ")
+}
 
+print(paste0(out_filt_str, out_str))
